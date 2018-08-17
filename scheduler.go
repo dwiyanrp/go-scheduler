@@ -31,6 +31,10 @@ func (scheduler *Scheduler) RunAt(time time.Time, function Function, params ...P
 	return task.TaskID, nil
 }
 
+func (scheduler *Scheduler) RunAfter(duration time.Duration, function Function, params ...Param) (string, error) {
+	return scheduler.RunAt(time.Now().Add(duration), function, params...)
+}
+
 func (scheduler *Scheduler) Cancel(taskID string) error {
 	task, found := scheduler.tasks[taskID]
 	if !found {
