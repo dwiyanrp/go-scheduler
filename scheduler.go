@@ -7,20 +7,20 @@ import (
 
 type Scheduler struct {
 	funcRegistry *FuncRegistry
-	tasks        map[int64]*Task
+	tasks        map[string]*Task
 }
 
 func NewScheduler() *Scheduler {
 	return &Scheduler{
 		funcRegistry: NewFuncRegistry(),
-		tasks:        make(map[int64]*Task),
+		tasks:        make(map[string]*Task),
 	}
 }
 
-func (scheduler *Scheduler) RunAt(time time.Time, function Function, params ...Param) (int64, error) {
+func (scheduler *Scheduler) RunAt(time time.Time, function Function, params ...Param) (string, error) {
 	funcMeta, err := scheduler.funcRegistry.Add(function)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	task := NewTask(funcMeta, params)
@@ -31,7 +31,7 @@ func (scheduler *Scheduler) RunAt(time time.Time, function Function, params ...P
 	return task.TaskID, nil
 }
 
-func (scheduler *Scheduler) Cancel(taskID int64) error {
+func (scheduler *Scheduler) Cancel(taskID string) error {
 	task, found := scheduler.tasks[taskID]
 	if !found {
 		return fmt.Errorf("Task %v not found", taskID)
@@ -42,7 +42,7 @@ func (scheduler *Scheduler) Cancel(taskID int64) error {
 	return nil
 }
 
-func (scheduler *Scheduler) Reschedule(taskID int64, time time.Time) error {
+func (scheduler *Scheduler) Reschedule(taskID string, time time.Time) error {
 	task, found := scheduler.tasks[taskID]
 	if !found {
 		return fmt.Errorf("Task %v not found", taskID)

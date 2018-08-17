@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/dwiyanrp/go-scheduler"
@@ -14,12 +13,14 @@ func main() {
 	r := gin.New()
 
 	r.GET("/start", func(c *gin.Context) {
-		taskID, _ := s.RunAt(time.Now().Add(10*time.Second), PrintMessage, c.Query("msg"))
+		runAt := time.Now().Add(10 * time.Second)
+		msg := c.Query("msg")
+		taskID, _ := s.RunAt(runAt, PrintMessage, msg)
 		c.String(200, fmt.Sprintf("Task %v scheduled", taskID))
 	})
 
 	r.GET("/stop/:id", func(c *gin.Context) {
-		taskID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+		taskID := c.Param("id")
 		if err := s.Cancel(taskID); err != nil {
 			c.String(200, fmt.Sprint(err))
 		} else {
@@ -28,8 +29,9 @@ func main() {
 	})
 
 	r.GET("/reschedule/:id", func(c *gin.Context) {
-		taskID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-		if err := s.Reschedule(taskID, time.Now().Add(5*time.Second)); err != nil {
+		taskID := c.Param("id")
+		rescheduleTime := time.Now().Add(5 * time.Second)
+		if err := s.Reschedule(taskID, rescheduleTime); err != nil {
 			c.String(200, fmt.Sprint(err))
 		} else {
 			c.String(200, fmt.Sprintf("Task %v rescheduled", taskID))

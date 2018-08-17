@@ -1,9 +1,17 @@
 package scheduler
 
 import (
+	"fmt"
+	"math/rand"
 	"reflect"
 	"time"
 )
+
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const charsetLength = len(charset)
+
+var seededRand *rand.Rand = rand.New(
+	rand.NewSource(time.Now().UnixNano()))
 
 type Schedule struct {
 	Timer        *time.Timer
@@ -12,15 +20,20 @@ type Schedule struct {
 }
 
 type Task struct {
-	TaskID   int64
+	TaskID   string
 	Schedule Schedule
 	Func     FunctionMeta
 	Params   []Param
 }
 
 func NewTask(function FunctionMeta, params []Param) *Task {
+	str := make([]byte, 4)
+	for i := range str {
+		str[i] = charset[seededRand.Intn(charsetLength)]
+	}
+
 	return &Task{
-		TaskID: time.Now().UnixNano(),
+		TaskID: fmt.Sprint(string(str), time.Now().UnixNano()),
 		Func:   function,
 		Params: params,
 	}
