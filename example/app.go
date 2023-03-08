@@ -19,6 +19,14 @@ func main() {
 		c.String(200, fmt.Sprintf("Task %v scheduled", taskID))
 	})
 
+	r.GET("/every", func(c *gin.Context) {
+		runEvery := 5 * time.Second
+		runUntil := time.Now().Add(60 * time.Second)
+		msg := c.Query("msg")
+		taskID, _ := s.RunEvery(runEvery, runUntil, PrintMessage, msg)
+		c.String(200, fmt.Sprintf("Task %v scheduled", taskID))
+	})
+
 	r.GET("/stop/:id", func(c *gin.Context) {
 		taskID := c.Param("id")
 		if err := s.Cancel(taskID); err != nil {
@@ -42,5 +50,5 @@ func main() {
 }
 
 func PrintMessage(msg string) {
-	fmt.Println(msg)
+	fmt.Println(time.Now().Format("2006-01-02 15:04:05"), msg)
 }

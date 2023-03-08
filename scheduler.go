@@ -24,7 +24,7 @@ func (scheduler *Scheduler) RunAt(time time.Time, function Function, params ...P
 	}
 
 	task := NewTask(funcMeta, params)
-	task.SetTime(time)
+	task.SetNextRun(time)
 	scheduler.tasks[task.TaskID] = task
 
 	go task.Run()
@@ -33,6 +33,20 @@ func (scheduler *Scheduler) RunAt(time time.Time, function Function, params ...P
 
 func (scheduler *Scheduler) RunAfter(duration time.Duration, function Function, params ...Param) (string, error) {
 	return scheduler.RunAt(time.Now().Add(duration), function, params...)
+}
+
+func (scheduler *Scheduler) RunEvery(runEvery time.Duration, runUntil time.Time, function Function, params ...Param) (string, error) {
+	funcMeta, err := scheduler.funcRegistry.Add(function)
+	if err != nil {
+		return "", err
+	}
+
+	task := NewTask(funcMeta, params)
+	task.SetInterval(runEvery, runUntil)
+	scheduler.tasks[task.TaskID] = task
+
+	go task.Run()
+	return task.TaskID, nil
 }
 
 func (scheduler *Scheduler) Cancel(taskID string) error {
@@ -46,6 +60,20 @@ func (scheduler *Scheduler) Cancel(taskID string) error {
 	return nil
 }
 
+// func (scheduler *Scheduler) ClearExpired() {
+// 	for _, task := range scheduler.tasks {
+// 		delete(scheduler.tasks, task.TaskID)
+// 	}
+// }
+
+func (scheduler *Scheduler) ClearAll() {
+	for _, task := range scheduler.tasks {
+		task.Stop()
+		delete(scheduler.tasks, task.TaskID)
+	}
+	scheduler.funcRegistry = NewFuncRegistry()
+}
+
 func (scheduler *Scheduler) Reschedule(taskID string, time time.Time) error {
 	task, found := scheduler.tasks[taskID]
 	if !found {
@@ -53,7 +81,7 @@ func (scheduler *Scheduler) Reschedule(taskID string, time time.Time) error {
 	}
 
 	task.Stop()
-	task.SetTime(time)
+	task.SetNextRun(time)
 
 	go task.Run()
 	return nil

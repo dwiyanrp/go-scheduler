@@ -7,23 +7,23 @@ import (
 	"time"
 )
 
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const charsetLength = len(charset)
 
 var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
 
 type Schedule struct {
-	Timer        *time.Timer
-	RunAt        time.Time
-	IntervalTime time.Time
+	Timer    *time.Timer
+	RunEvery time.Duration
+	RunUntil time.Time
 }
 
 type Task struct {
-	TaskID   string
-	Schedule Schedule
-	Func     FunctionMeta
-	Params   []Param
+	TaskID string
+	Schedule
+	Func   FunctionMeta
+	Params []Param
 }
 
 func NewTask(function FunctionMeta, params []Param) *Task {
@@ -39,21 +39,35 @@ func NewTask(function FunctionMeta, params []Param) *Task {
 	}
 }
 
-func (task *Task) SetTime(runAt time.Time) {
-	task.Schedule.RunAt = runAt
-	task.Schedule.Timer = time.NewTimer(runAt.Sub(time.Now()))
+func (task *Task) SetNextRun(runAt time.Time) {
+	task.Timer = time.NewTimer(runAt.Sub(time.Now()))
+}
+
+func (task *Task) SetIntervalNextRun() {
+	task.Timer = time.NewTimer(task.RunEvery)
+}
+
+func (task *Task) SetInterval(runEvery time.Duration, runUntil time.Time) {
+	task.RunEvery = runEvery
+	task.RunUntil = runUntil
+	task.SetIntervalNextRun()
 }
 
 func (task *Task) Run() {
-	<-task.Schedule.Timer.C
+	<-task.Timer.C
 	function := reflect.ValueOf(task.Func.function)
 	params := make([]reflect.Value, len(task.Params))
 	for i, param := range task.Params {
 		params[i] = reflect.ValueOf(param)
 	}
 	function.Call(params)
+
+	if time.Now().Before(task.RunUntil.Add(time.Second)) {
+		task.SetIntervalNextRun()
+		task.Run()
+	}
 }
 
 func (task *Task) Stop() {
-	task.Schedule.Timer.Stop()
+	task.Timer.Stop()
 }
